@@ -1978,3 +1978,88 @@ button:disabled {
   border-color: var(--purple);
   color: #fff;
 }
+/* ========================================
+   HARVION AI - IMAGE UPLOAD
+======================================== */
+
+.attachment-button {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.image-preview-container {
+  width: 100%;
+  padding: 12px 14px 4px;
+}
+
+.image-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.image-preview-item {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-preview-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.image-preview-remove:hover {
+  background: #e5484d;
+}
+/* ========================================
+   HARVION AI - SENT IMAGE THUMBNAILS
+======================================== */
+
+.sent-image-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sent-message-image {
+  width: 120px;
+  height: 120px;
+  max-width: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+/* FIX: SHOW IMAGE UPLOAD BUTTON ON MOBILE */
+
+@media (max-width: 768px) {
+  #attachImageButton {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-shrink: 0 !important;
+    width: 38px;
+    height: 38px;
+  }
+}
