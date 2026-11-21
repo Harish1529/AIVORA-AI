@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,22 +7,89 @@
   <meta name="theme-color" content="#090b13">
   <meta name="description" content="HARVION AI - Your intelligent AI assistant.">
 
-  <title>HARVION AI — Your intelligent assistant</title>
+  <title>HARVION AI — Your Intelligent Assistant</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
 
   <link rel="stylesheet" href="/style.css">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css"
+  >
 </head>
 
 <body>
 
-<div class="app-shell">
+<!-- =====================================
+     HARVION AI DEDICATED SIGN-IN SCREEN
+===================================== -->
+
+<section class="auth-screen" id="authScreen">
+
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <span class="auth-logo-mark">✦</span>
+      <span>HARVION <strong>AI</strong></span>
+    </div>
+
+    <div class="auth-welcome">
+
+      <span class="auth-eyebrow">
+        YOUR INTELLIGENT AI ASSISTANT
+      </span>
+
+      <h1>
+        Welcome to<br>HARVION AI
+      </h1>
+
+      <p>
+        Your ideas deserve intelligence.
+        Sign in to start your journey with your personal AI assistant.
+      </p>
+
+    </div>
+
+    <!-- GOOGLE SIGN-IN BUTTON: ONLY ONE IN THE ENTIRE PAGE -->
+
+    <button
+      id="googleSignInButton"
+      class="auth-button google-auth-button"
+      type="button"
+    >
+      <span class="google-icon">G</span>
+      <span>Continue with Google</span>
+    </button>
+
+    <div class="auth-secure-note">
+      <span>🔒</span>
+      Secure sign-in powered by Google
+    </div>
+
+    <div class="auth-footer">
+      © 2026 HARVION AI. All rights reserved.
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- =====================================
+     MAIN HARVION AI APPLICATION
+===================================== -->
+
+<div class="app-shell" hidden>
 
   <!-- SIDEBAR -->
+
   <aside class="sidebar" id="sidebar">
 
     <a class="brand" href="/">
@@ -31,7 +97,7 @@
       <span>HARVION <b>AI</b></span>
     </a>
 
-    <button class="new-chat" id="newChat">
+    <button class="new-chat" id="newChat" type="button">
       <span>＋</span>
       New chat
     </button>
@@ -40,34 +106,58 @@
 
     <div class="chat-search">
       <span>⌕</span>
+
       <input
         type="search"
         id="chatSearch"
         placeholder="Search conversations..."
         autocomplete="off"
+        aria-label="Search conversations"
       >
     </div>
 
     <div class="history-list" id="historyList"></div>
 
+    <!-- SIDEBAR PROFILE -->
+
     <div class="sidebar-bottom">
-      <div class="sidebar-profile">
-        <div class="profile-avatar">A</div>
+
+      <div class="sidebar-profile" id="authSection">
+
+        <div class="profile-avatar" id="userAvatar">A</div>
+
         <div class="profile-info">
-          <strong>HARVION AI</strong>
-          <span>Personal AI assistant</span>
+          <strong id="userName">HARVION AI</strong>
+          <span id="userEmail">Not signed in</span>
         </div>
-        <span class="profile-status"></span>
+
+        <span class="profile-status" id="authStatus"></span>
+
       </div>
+
+      <!-- SIGN-OUT BUTTON -->
+
+      <button
+        id="signOutButton"
+        class="auth-button signout-auth-button"
+        type="button"
+        hidden
+      >
+        <span>↪</span>
+        <span>Sign out</span>
+      </button>
+
     </div>
 
   </aside>
 
 
   <!-- MAIN PANEL -->
+
   <main class="main-panel">
 
     <!-- TOPBAR -->
+
     <header class="topbar">
 
       <button
@@ -75,12 +165,12 @@
         id="menuToggle"
         type="button"
         aria-label="Open menu"
-      >
-        ☰
-      </button>
+        title="Open menu"
+      >☰</button>
 
 
-      <!-- AI MODEL CUSTOM DROPDOWN -->
+      <!-- MODEL DROPDOWN -->
+
       <div class="custom-dropdown" id="modelDropdown">
 
         <button
@@ -128,17 +218,26 @@
       </div>
 
 
-      <!-- Keep these selects for compatibility with existing app.js -->
-      <select id="modelSelect" class="visually-hidden" aria-hidden="true" tabindex="-1">
+      <!-- HIDDEN MODEL SELECT -->
+
+      <select
+        id="modelSelect"
+        class="visually-hidden"
+        aria-hidden="true"
+        tabindex="-1"
+      >
         <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
         <option value="gemini-3.6-flash" selected>Gemini 3.6 Flash</option>
         <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
       </select>
 
 
+      <!-- TOP ACTIONS -->
+
       <div class="top-actions">
 
-        <!-- THEME CUSTOM DROPDOWN -->
+        <!-- THEME DROPDOWN -->
+
         <div class="custom-dropdown theme-dropdown" id="themeDropdown">
 
           <button
@@ -186,12 +285,18 @@
         </div>
 
 
-        <select id="themeSelect" class="visually-hidden" aria-hidden="true" tabindex="-1">
+        <!-- HIDDEN THEME SELECT -->
+
+        <select
+          id="themeSelect"
+          class="visually-hidden"
+          aria-hidden="true"
+          tabindex="-1"
+        >
           <option value="dark" selected>Dark</option>
           <option value="light">Light</option>
           <option value="system">System</option>
         </select>
-
 
         <span class="top-caption">PERSONAL AI</span>
 
@@ -201,9 +306,7 @@
           type="button"
           title="Export conversation"
           aria-label="Export conversation"
-        >
-          ↓
-        </button>
+        >↓</button>
 
         <button
           class="icon-button"
@@ -211,41 +314,40 @@
           type="button"
           title="Clear conversation"
           aria-label="Clear conversation"
-        >
-          ⟲
-        </button>
+        >⟲</button>
 
       </div>
 
     </header>
 
 
-    <!-- CONVERSATION AREA -->
+    <!-- CONVERSATION -->
+
     <section class="conversation" id="conversation">
 
-      <!-- WELCOME SCREEN -->
+      <!-- CHAT WELCOME SCREEN -->
+
       <div class="welcome" id="welcome">
 
         <div class="orb">
           <span>✦</span>
         </div>
 
-        <div class="eyebrow">
-          YOUR AI, REIMAGINED
-        </div>
+        <div class="eyebrow">YOUR AI, REIMAGINED</div>
 
-        <h1>
-          Where ideas<br>
-          <em>become reality.</em>
-        </h1>
+        <h1 id="personalWelcome">
+  Where ideas<br>
+  <em>become reality.</em>
+</h1>
 
-        <p>
-          Think freely. Ask anything. Create something amazing.
-          Your intelligent assistant is ready to help.
-        </p>
+        <p id="personalWelcomeText">
+  Think freely. Ask anything. Create something amazing.
+  Your intelligent assistant is ready to help.
+</p>
 
 
         <!-- SUGGESTION CARDS -->
+
         <div class="suggestions">
 
           <button
@@ -254,10 +356,12 @@
             data-prompt="Explain an interesting technology concept in simple words."
           >
             <span class="suggestion-icon purple">✦</span>
+
             <span class="suggestion-content">
               <strong>Learn something new</strong>
               <small>Explore technology and science</small>
             </span>
+
             <span class="suggestion-arrow">↗</span>
           </button>
 
@@ -268,10 +372,12 @@
             data-prompt="Help me generate creative ideas for a new project."
           >
             <span class="suggestion-icon blue">◇</span>
+
             <span class="suggestion-content">
               <strong>Explore creative ideas</strong>
               <small>Turn your ideas into reality</small>
             </span>
+
             <span class="suggestion-arrow">↗</span>
           </button>
 
@@ -282,10 +388,12 @@
             data-prompt="Teach me a useful programming concept with an example."
           >
             <span class="suggestion-icon gold">⌘</span>
+
             <span class="suggestion-content">
               <strong>Write better code</strong>
               <small>Learn programming step by step</small>
             </span>
+
             <span class="suggestion-arrow">↗</span>
           </button>
 
@@ -296,10 +404,12 @@
             data-prompt="Help me create a practical productivity plan."
           >
             <span class="suggestion-icon pink">◎</span>
+
             <span class="suggestion-content">
               <strong>Boost productivity</strong>
               <small>Organize your goals and tasks</small>
             </span>
+
             <span class="suggestion-arrow">↗</span>
           </button>
 
@@ -309,12 +419,14 @@
 
 
       <!-- CHAT MESSAGES -->
+
       <div class="messages" id="messages"></div>
 
     </section>
 
 
     <!-- MESSAGE COMPOSER -->
+
     <footer class="composer-area">
 
       <form class="composer" id="chatForm">
@@ -324,10 +436,94 @@
           placeholder="Message HARVION AI..."
           rows="1"
           autocomplete="off"
+          aria-label="Write your message"
         ></textarea>
 
 
+        <!-- IMAGE PREVIEW -->
+
+        <div
+          class="image-preview-container"
+          id="imagePreviewContainer"
+          hidden
+        >
+          <div
+            class="image-preview-list"
+            id="imagePreviewList"
+          ></div>
+        </div>
+
+
+        <!-- PDF PREVIEW -->
+
+        <div
+          class="pdf-preview-container"
+          id="pdfPreviewContainer"
+          hidden
+        >
+          <div
+            class="pdf-preview-list"
+            id="pdfPreviewList"
+          ></div>
+        </div>
+
+
+        <!-- COMPOSER TOOLBAR -->
+
         <div class="composer-tools">
+
+          <!-- IMAGE UPLOAD INPUT -->
+
+          <input
+            type="file"
+            id="imageInput"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            hidden
+          >
+
+
+          <!-- PDF UPLOAD INPUT -->
+
+          <input
+            type="file"
+            id="pdfInput"
+            accept="application/pdf,.pdf"
+            hidden
+          >
+
+
+          <button
+            class="icon-button attachment-button"
+            id="attachImageButton"
+            type="button"
+            title="Upload images"
+            aria-label="Upload images"
+          >📎</button>
+
+
+          <!-- PDF UPLOAD BUTTON -->
+
+          <button
+            class="icon-button pdf-upload-button"
+            id="attachPdfButton"
+            type="button"
+            title="Upload PDF"
+            aria-label="Upload PDF"
+          >📄</button>
+
+
+          <!-- WEB SEARCH BUTTON -->
+
+          <button
+            class="icon-button web-search-button"
+            id="webSearchButton"
+            type="button"
+            aria-label="Toggle web search"
+            aria-pressed="false"
+            title="Enable web search"
+          >🌐</button>
+
 
           <div class="composer-hint">
             <span>↵</span>
@@ -335,35 +531,36 @@
           </div>
 
 
+          <!-- VOICE INPUT -->
+
           <button
             class="voice-button"
             id="voiceButton"
             type="button"
             title="Voice input"
             aria-label="Voice input"
-          >
-            🎙️
-          </button>
+          >🎙️</button>
 
+
+          <!-- STOP BUTTON -->
 
           <button
             class="stop-button"
             id="stopButton"
             type="button"
             hidden
-          >
-            ■ Stop
-          </button>
+          >■ Stop</button>
 
+
+          <!-- SEND BUTTON -->
 
           <button
             class="send-button"
             id="sendButton"
             type="submit"
             aria-label="Send message"
-          >
-            ↑
-          </button>
+            title="Send message"
+          >↑</button>
 
         </div>
 
@@ -382,10 +579,17 @@
 
 
 <!-- TOAST NOTIFICATION -->
-<div class="toast" id="toast"></div>
+
+<div
+  class="toast"
+  id="toast"
+  role="status"
+  aria-live="polite"
+></div>
 
 
-<!-- LIBRARIES -->
+<!-- EXTERNAL LIBRARIES -->
+
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
@@ -393,10 +597,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 
 
-<!-- HARVION AI APP -->
+<!-- HARVION AI APPLICATION -->
+
 <script src="/app.js"></script>
+
+<script type="module" src="/firebase-auth.js"></script>
 
 </body>
 </html>
+
 
 

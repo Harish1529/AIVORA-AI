@@ -1,5 +1,4 @@
 
-
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
@@ -11,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "30mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ========================================
@@ -241,6 +240,7 @@ app.post("/api/chat", async (req, res) => {
 // REAL-TIME GEMINI STREAMING API
 // ========================================
 
+
 app.post("/api/chat/stream", async (req, res) => {
   const controller = new AbortController();
 
@@ -261,6 +261,18 @@ app.post("/api/chat/stream", async (req, res) => {
     }
 
     const messages = req.body?.messages;
+    const images = req.body?.images || [];
+    const pdfs = req.body?.pdfs || [];
+    const webSearchResults = req.body?.webSearchResults || [];
+
+if (
+  !Array.isArray(webSearchResults) ||
+  webSearchResults.length > 5
+) {
+  return res.status(400).json({
+    error: "Invalid web search results."
+  });
+}
 
     if (
       !Array.isArray(messages) ||
@@ -271,6 +283,95 @@ app.post("/api/chat/stream", async (req, res) => {
         error: "Please send between 1 and 30 chat messages."
       });
     }
+
+    if (!Array.isArray(images) || images.length > 4) {
+      return res.status(400).json({
+        error: "You can upload a maximum of 4 images."
+      });
+    }
+
+    // Validate uploaded images.
+    const imageParts = [];
+
+    for (const image of images) {
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ];
+
+      if (
+        !image ||
+        !allowedTypes.includes(image.mimeType) ||
+        typeof image.data !== "string" ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(image.data)
+      ) {
+        return res.status(400).json({
+          error: "Invalid image format."
+        });
+      }
+
+      const imageBuffer = Buffer.from(image.data, "base64");
+
+      if (
+        imageBuffer.length === 0 ||
+        imageBuffer.length > 5 * 1024 * 1024
+      ) {
+        return res.status(400).json({
+          error: "Each image must be smaller than 5 MB."
+        });
+      }
+
+      imageParts.push({
+        inlineData: {
+          mimeType: image.mimeType,
+          data: image.data
+        }
+      });
+    }
+    // ========================================
+// VALIDATE UPLOADED PDF FILES
+// ========================================
+
+if (!Array.isArray(pdfs) || pdfs.length > 1) {
+  return res.status(400).json({
+    error: "You can upload only 1 PDF at a time."
+  });
+}
+
+const pdfParts = [];
+
+for (const pdf of pdfs) {
+  if (
+    !pdf ||
+    pdf.mimeType !== "application/pdf" ||
+    typeof pdf.data !== "string" ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(pdf.data)
+  ) {
+    return res.status(400).json({
+      error: "Invalid PDF format."
+    });
+  }
+
+  const pdfBuffer = Buffer.from(pdf.data, "base64");
+
+  if (
+    pdfBuffer.length === 0 ||
+    pdfBuffer.length > 10 * 1024 * 1024 ||
+    pdfBuffer.subarray(0, 5).toString() !== "%PDF-"
+  ) {
+    return res.status(400).json({
+      error: "PDF must be valid and smaller than 10 MB."
+    });
+  }
+
+  pdfParts.push({
+    inlineData: {
+      mimeType: "application/pdf",
+      data: pdf.data
+    }
+  });
+}
 
     const requestedModel = req.body?.model || DEFAULT_MODEL;
 
@@ -286,19 +387,65 @@ app.post("/api/chat/stream", async (req, res) => {
 
     const model = selectedModel.id;
 
-    const contents = messages.map((message) => {
+    // Find the latest user message to attach images to it.
+    let lastUserIndex = -1;
+
+    messages.forEach((message, index) => {
+      if (message.role !== "assistant") {
+        lastUserIndex = index;
+      }
+    });
+
+    if (lastUserIndex === -1) {
+      return res.status(400).json({
+        error: "A user message is required."
+      });
+    }
+
+    const contents = messages.map((message, index) => {
       const role =
         message.role === "assistant" ? "model" : "user";
 
-      const text = String(message.content || "").slice(0, 12000);
+      const messageText = String(
+        message.content || ""
+      ).slice(0, 12000);
 
-      return {
-        role,
-        parts: [{ text }]
-      };
+      const parts = [];
+
+      if (messageText.trim()) {
+        parts.push({ text: messageText });
+      }
+
+      // Attach uploaded images and PDFs to the latest user message.
+if (index === lastUserIndex) {
+  parts.push(...imageParts);
+  parts.push(...pdfParts);
+}
+
+      return { role, parts };
     });
+    // Prepare web search context for Gemini.
+let webSearchContext = "";
 
-    if (contents.some((item) => !item.parts[0].text.trim())) {
+if (webSearchResults.length > 0) {
+  webSearchContext =
+    "\n\nWEB SEARCH RESULTS:\n" +
+    webSearchResults.map((item, index) => {
+      return (
+        `Source ${index + 1}: ${String(item.title || "").slice(0, 300)}\n` +
+        `URL: ${String(item.url || "").slice(0, 1000)}\n` +
+        `Information: ${String(item.snippet || "").slice(0, 1500)}`
+      );
+    }).join("\n\n") +
+    "\n\nUse these sources to answer the user's question. " +
+    "Do not invent facts or URLs. Cite relevant sources using Markdown links.";
+}
+
+    if (
+      contents.some(
+        (item) => item.parts.length === 0
+      )
+    ) {
       return res.status(400).json({
         error: "Messages cannot be empty."
       });
@@ -306,11 +453,48 @@ app.post("/api/chat/stream", async (req, res) => {
 
     const requestBody = {
       systemInstruction: {
-        parts: [{
-          text: "You are HARVION AI, a helpful, clear, friendly AI assistant. Give accurate and useful answers."
-        }]
-      },
-      contents,
+  parts: [{
+    text:
+      "You are HARVION AI, a helpful, clear, friendly AI assistant. " +
+
+      "Automatically detect the language and writing style of the user's latest message. " +
+
+      "Always respond in the same language used by the user. " +
+
+      "If the user writes in Tamil, respond in Tamil. " +
+      "If the user writes in English, respond in English. " +
+      "If the user writes in Hindi, respond in Hindi. " +
+      "If the user writes in Malayalam, respond in Malayalam. " +
+      "If the user writes in Telugu, respond in Telugu. " +
+
+      "If the user writes in Tanglish or mixes Tamil and English, " +
+      "respond naturally in the same mixed style. " +
+
+      "Do not unnecessarily translate the user's message. " +
+      "Do not switch languages unless the user requests it. " +
+
+      "You can understand uploaded images. Analyze image details carefully " +
+      "and answer questions accurately in the user's language."
+  }]
+},
+
+      contents: contents.map((item, index) => {
+  if (
+    index === lastUserIndex &&
+    webSearchContext
+  ) {
+    return {
+      ...item,
+      parts: [
+        ...item.parts,
+        { text: webSearchContext }
+      ]
+    };
+  }
+
+  return item;
+}),
+
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048
@@ -363,7 +547,12 @@ app.post("/api/chat/stream", async (req, res) => {
     }
 
     console.log("Streaming model:", model);
-
+    console.log("Images received:", images.length);
+console.log("PDFs received:", pdfs.length);
+console.log(
+  "PDF size (bytes):",
+  pdfs.map(pdf => Buffer.from(pdf.data, "base64").length)
+);
     // Start sending events to the browser.
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -377,6 +566,30 @@ app.post("/api/chat/stream", async (req, res) => {
 
     let buffer = "";
 
+    function processLine(line) {
+      if (!line.startsWith("data:")) return;
+
+      const rawData = line.slice(5).trim();
+
+      if (!rawData || rawData === "[DONE]") return;
+
+      try {
+        const chunk = JSON.parse(rawData);
+
+        const text = chunk?.candidates?.[0]?.content?.parts
+          ?.map((part) => part.text || "")
+          .join("");
+
+        if (text && !res.destroyed) {
+          res.write(
+            `data: ${JSON.stringify({ text })}\n\n`
+          );
+        }
+      } catch (error) {
+        console.error("Could not parse Gemini stream chunk:", error);
+      }
+    }
+
     while (true) {
       const { value, done } = await reader.read();
 
@@ -388,45 +601,14 @@ app.post("/api/chat/stream", async (req, res) => {
       buffer = lines.pop() || "";
 
       for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-
-        const rawData = line.slice(5).trim();
-
-        if (!rawData || rawData === "[DONE]") continue;
-
-        try {
-          const chunk = JSON.parse(rawData);
-
-          const text = chunk?.candidates?.[0]?.content?.parts
-            ?.map((part) => part.text || "")
-            .join("");
-
-          if (text && !res.destroyed) {
-            res.write(`data: ${JSON.stringify({ text })}\n\n`);
-          }
-        } catch (error) {
-          console.error("Could not parse Gemini stream chunk:", error);
-        }
+        processLine(line.trimEnd());
       }
     }
 
-    // Process any remaining buffered data.
-    const remaining = buffer.trim();
+    buffer += decoder.decode();
 
-    if (remaining.startsWith("data:")) {
-      try {
-        const chunk = JSON.parse(remaining.slice(5).trim());
-
-        const text = chunk?.candidates?.[0]?.content?.parts
-          ?.map((part) => part.text || "")
-          .join("");
-
-        if (text && !res.destroyed) {
-          res.write(`data: ${JSON.stringify({ text })}\n\n`);
-        }
-      } catch {
-        // Ignore incomplete final chunks.
-      }
+    if (buffer.trim()) {
+      processLine(buffer.trimEnd());
     }
 
     if (!res.destroyed) {
@@ -447,9 +629,11 @@ app.post("/api/chat/stream", async (req, res) => {
 
     if (!res.destroyed) {
       if (res.headersSent) {
-        res.write(`event: error\ndata: ${JSON.stringify({
-          error: "Streaming failed. Please try again."
-        })}\n\n`);
+        res.write(
+          `event: error\ndata: ${JSON.stringify({
+            error: "Streaming failed. Please try again."
+          })}\n\n`
+        );
 
         res.end();
       } else {
@@ -460,6 +644,79 @@ app.post("/api/chat/stream", async (req, res) => {
     }
   }
 });
+
+// ========================================
+// LANGSEARCH WEB SEARCH API
+// ========================================
+
+app.post("/api/search", async (req, res) => {
+  try {
+    const apiKey = process.env.LANGSEARCH_API_KEY;
+    const query = req.body?.query;
+
+    if (!apiKey) {
+      return res.status(503).json({
+        error: "LangSearch API key is missing. Check your .env file."
+      });
+    }
+
+    if (
+      typeof query !== "string" ||
+      !query.trim() ||
+      query.length > 300
+    ) {
+      return res.status(400).json({
+        error: "Please enter a search query (maximum 300 characters)."
+      });
+    }
+console.log("HARVION: Chat request received");
+    const response = await fetch(
+      "https://api.langsearch.com/v1/web-search",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          query: query.trim(),
+          count: 5
+        }),
+        signal: AbortSignal.timeout(20000)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || String(data?.code) !== "200") {
+      console.error("LangSearch error:", data);
+
+      return res.status(502).json({
+        error: "Web search failed. Please try again."
+      });
+    }
+
+    const results = data?.data?.webPages?.value || [];
+
+    return res.json({
+      query: query.trim(),
+      results: results.map((item) => ({
+        title: item.name || "Untitled result",
+        url: item.url || "",
+        snippet: item.snippet || item.text || "",
+        date: item.datePublished || null
+      }))
+    });
+
+  } catch (error) {
+    console.error("LangSearch request error:", error);
+
+    return res.status(500).json({
+      error: "Unable to connect to web search right now."
+    });
+  }
+});
+
 // ========================================
 // SERVE FRONTEND
 // ========================================

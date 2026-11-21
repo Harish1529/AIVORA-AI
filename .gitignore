@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+AIVORA_AI_Project_BACKUP/
+AIVORA_AI_Project/public/*-backup.*
