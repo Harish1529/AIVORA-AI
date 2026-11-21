@@ -976,7 +976,73 @@ async function sendMessage(rawText) {
     "Unable to get a response."
   );
 }
+// ========================================
+// HARVION AI - REAL-TIME STREAM READER
+// ========================================
 
+async function readEventStream(response, onText) {
+  if (!response.body) {
+    throw new Error("Streaming is not supported by this browser.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  let buffer = "";
+
+  function processEvent(eventText) {
+    const lines = eventText.split(/\r?\n/);
+
+    let eventName = "message";
+    const dataLines = [];
+
+    for (const line of lines) {
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim();
+      }
+
+      if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trim());
+      }
+    }
+
+    if (dataLines.length === 0) return;
+
+    const data = JSON.parse(dataLines.join("\n"));
+
+    if (eventName === "error") {
+      throw new Error(data.error || "Streaming failed.");
+    }
+
+    if (eventName === "message" && data.text) {
+      onText(data.text);
+    }
+  }
+
+  while (true) {
+    const { value, done } = await reader.read();
+
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const events = buffer.split(/\r?\n\r?\n/);
+
+    buffer = events.pop() || "";
+
+    for (const eventText of events) {
+      if (eventText.trim()) {
+        processEvent(eventText);
+      }
+    }
+  }
+
+  buffer += decoder.decode();
+
+  if (buffer.trim()) {
+    processEvent(buffer);
+  }
+}
 
 // ========================================
 // API REQUEST
@@ -992,7 +1058,9 @@ async function requestAIResponse(chat, errorMessage) {
 
   setGeneratingState(true);
 
-  const typingRow = createTypingRow();
+  let typingRow = createTypingRow();
+  let streamingRow = null;
+  let generatedText = "";
 
   messagesEl.appendChild(typingRow);
 
@@ -1002,7 +1070,7 @@ async function requestAIResponse(chat, errorMessage) {
   });
 
   try {
-    const response = await fetch("/api/chat", {
+    const response = await fetch("/api/chat/stream", {
       method: "POST",
 
       headers: {
@@ -1011,40 +1079,91 @@ async function requestAIResponse(chat, errorMessage) {
 
       body: JSON.stringify({
         messages: chat.messages.slice(-20),
-        model: modelSelect ? modelSelect.value : "gemini-3.6-flash"
+        model: modelSelect
+          ? modelSelect.value
+          : "gemini-3.6-flash"
       }),
 
       signal: controller.signal
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+
       throw new Error(data.error || errorMessage);
     }
 
-    if (controller.signal.aborted) return;
+    typingRow.remove();
+    typingRow = null;
 
-    chat.messages.push({
-      role: "assistant",
-      content: data.reply
+    // Create the live assistant message.
+    streamingRow = addMessage("assistant", "");
+
+    const messageText = streamingRow.querySelector(".message-text");
+
+    // Receive and display text as it arrives.
+    await readEventStream(response, (chunk) => {
+      generatedText += chunk;
+
+      messageText.textContent = generatedText;
+
+      streamingRow.scrollIntoView({
+        behavior: "auto",
+        block: "end"
+      });
     });
 
-    typingRow.remove();
+    if (controller.signal.aborted) return;
+
+    if (!generatedText.trim()) {
+      throw new Error("HARVION AI returned an empty response.");
+    }
+
+    // Save the completed response.
+    chat.messages.push({
+      role: "assistant",
+      content: generatedText
+    });
+
+    // Replace temporary text with formatted Markdown.
+    streamingRow.remove();
+    streamingRow = null;
 
     addMessage(
-  "assistant",
-  data.reply,
-  chat.messages.length - 1,
-  true
-);
+      "assistant",
+      generatedText,
+      chat.messages.length - 1
+    );
 
     saveChats();
 
   } catch (error) {
-    typingRow.remove();
 
     if (error.name === "AbortError") {
+
+      // Preserve any text received before stopping.
+      if (generatedText.trim()) {
+        chat.messages.push({
+          role: "assistant",
+          content: generatedText
+        });
+
+        saveChats();
+      }
+
+      if (streamingRow) {
+        streamingRow.remove();
+        streamingRow = null;
+      }
+
+      if (generatedText.trim()) {
+        addMessage(
+          "assistant",
+          generatedText,
+          chat.messages.length - 1
+        );
+      }
+
       return;
     }
 
@@ -1052,7 +1171,27 @@ async function requestAIResponse(chat, errorMessage) {
 
     showToast(message);
 
-    if (errorMessage === "Unable to get a response.") {
+    if (generatedText.trim()) {
+      chat.messages.push({
+        role: "assistant",
+        content: generatedText
+      });
+
+      saveChats();
+    }
+
+    if (streamingRow) {
+      streamingRow.remove();
+      streamingRow = null;
+    }
+
+    if (generatedText.trim()) {
+      addMessage(
+        "assistant",
+        generatedText,
+        chat.messages.length - 1
+      );
+    } else if (errorMessage === "Unable to get a response.") {
       addMessage(
         "assistant",
         "Sorry, I couldn't complete that request. " + message
@@ -1060,6 +1199,11 @@ async function requestAIResponse(chat, errorMessage) {
     }
 
   } finally {
+
+    if (typingRow) {
+      typingRow.remove();
+    }
+
     if (activeController === controller) {
       activeController = null;
     }
