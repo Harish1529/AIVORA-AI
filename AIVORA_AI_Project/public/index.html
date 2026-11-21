@@ -1,68 +1,402 @@
-<!doctype html>
+
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#090b13">
-  <meta name="description" content="AIVORA AI - your intelligent AI assistant.">
-  <title>AIVORA AI — Your intelligent assistant</title>
+  <meta name="description" content="HARVION AI - Your intelligent AI assistant.">
+
+  <title>HARVION AI — Your intelligent assistant</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="/style.css">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
 </head>
+
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand" href="/" aria-label="AIVORA AI home">
-        <span class="brand-mark">✦</span><span>NOVA <b>AI</b></span>
-      </a>
-      <button class="new-chat" id="newChat"><span>＋</span> New chat</button>
-      <div class="side-label">YOUR SPACE</div>
-      <div class="history-list" id="historyList"></div>
-      <div class="sidebar-bottom">
-        <div class="profile-avatar">N</div>
-        <div class="profile-copy"><strong>AIVORA workspace</strong><span>Personal assistant</span></div>
-        <span class="more">•••</span>
-      </div>
-    </aside>
 
-    <main class="main-panel">
-      <header class="topbar">
-        <button class="icon-button mobile-menu" id="menuToggle" aria-label="Open menu">☰</button>
-        <div class="model-pill"><span class="status-dot"></span> AIVORA AI <span class="chevron">⌄</span></div>
-        <div class="top-actions"><span class="top-caption">PERSONAL AI</span><button class="icon-button" id="clearChat" title="Clear current chat" aria-label="Clear chat">⟲</button></div>
-      </header>
+<div class="app-shell">
 
-      <section class="conversation" id="conversation">
-        <div class="welcome" id="welcome">
-          <div class="orb"><span>✦</span></div>
-          <div class="eyebrow"><span class="eyebrow-line"></span> YOUR AI, REIMAGINED <span class="eyebrow-line"></span></div>
-          <h1>Where ideas<br><em>become reality.</em></h1>
-          <p>I'm AIVORA, your AI assistant. Ask me anything, explore an idea, or create something amazing.</p>
-          <div class="suggestions">
-            <button class="suggestion" data-prompt="Explain artificial intelligence in simple words."><span class="suggestion-icon purple">✧</span><span><b>Explain a concept</b><small>Make complex topics simple</small></span><span class="suggestion-arrow">↗</span></button>
-            <button class="suggestion" data-prompt="Give me a beginner-friendly C programming practice problem with solution."><span class="suggestion-icon blue">{ }</span><span><b>Write some code</b><small>Build, debug and learn</small></span><span class="suggestion-arrow">↗</span></button>
-            <button class="suggestion" data-prompt="Help me plan a productive study schedule for this week."><span class="suggestion-icon gold">◷</span><span><b>Plan my day</b><small>Turn goals into a clear plan</small></span><span class="suggestion-arrow">↗</span></button>
-            <button class="suggestion" data-prompt="Suggest five creative website project ideas for a student."><span class="suggestion-icon pink">◇</span><span><b>Explore an idea</b><small>Discover new possibilities</small></span><span class="suggestion-arrow">↗</span></button>
-          </div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+
+    <a class="brand" href="/">
+      <span class="brand-mark">✦</span>
+      <span>HARVION <b>AI</b></span>
+    </a>
+
+    <button class="new-chat" id="newChat">
+      <span>＋</span>
+      New chat
+    </button>
+
+    <div class="side-label">YOUR SPACE</div>
+
+    <div class="chat-search">
+      <span>⌕</span>
+      <input
+        type="search"
+        id="chatSearch"
+        placeholder="Search conversations..."
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="history-list" id="historyList"></div>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-profile">
+        <div class="profile-avatar">A</div>
+        <div class="profile-info">
+          <strong>HARVION AI</strong>
+          <span>Personal AI assistant</span>
         </div>
-        <div class="messages" id="messages" aria-live="polite"></div>
-      </section>
+        <span class="profile-status"></span>
+      </div>
+    </div>
 
-      <footer class="composer-area">
-        <form class="composer" id="chatForm">
-          <textarea id="promptInput" rows="1" maxlength="12000" placeholder="Message AIVORA AI..." aria-label="Message AIVORA AI"></textarea>
-          <div class="composer-tools">
-            <div class="composer-hint"><span class="sparkle-small">✦</span> Ask anything</div>
-            <button class="send-button" id="sendButton" type="submit" aria-label="Send message"><span>↑</span></button>
+  </aside>
+
+
+  <!-- MAIN PANEL -->
+  <main class="main-panel">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+
+      <button
+        class="icon-button mobile-menu"
+        id="menuToggle"
+        type="button"
+        aria-label="Open menu"
+      >
+        ☰
+      </button>
+
+
+      <!-- AI MODEL CUSTOM DROPDOWN -->
+      <div class="custom-dropdown" id="modelDropdown">
+
+        <button
+          class="dropdown-trigger"
+          type="button"
+          aria-expanded="false"
+          aria-haspopup="true"
+        >
+          <span class="status-dot"></span>
+          <span class="dropdown-value">Gemini 3.6 Flash</span>
+          <span class="dropdown-arrow">⌄</span>
+        </button>
+
+        <div class="dropdown-menu">
+
+          <button
+            class="dropdown-option"
+            type="button"
+            data-value="gemini-3.8-flash"
+          >
+            <span>Gemini 3.8 Flash</span>
+            <span class="option-check"></span>
+          </button>
+
+          <button
+            class="dropdown-option selected"
+            type="button"
+            data-value="gemini-3.6-flash"
+          >
+            <span>Gemini 3.6 Flash</span>
+            <span class="option-check">✓</span>
+          </button>
+
+          <button
+            class="dropdown-option"
+            type="button"
+            data-value="gemini-3.1-flash-lite"
+          >
+            <span>Gemini 3.1 Flash-Lite</span>
+            <span class="option-check"></span>
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- Keep these selects for compatibility with existing app.js -->
+      <select id="modelSelect" class="visually-hidden" aria-hidden="true" tabindex="-1">
+        <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+        <option value="gemini-3.6-flash" selected>Gemini 3.6 Flash</option>
+        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
+      </select>
+
+
+      <div class="top-actions">
+
+        <!-- THEME CUSTOM DROPDOWN -->
+        <div class="custom-dropdown theme-dropdown" id="themeDropdown">
+
+          <button
+            class="dropdown-trigger"
+            type="button"
+            aria-expanded="false"
+            aria-haspopup="true"
+          >
+            <span class="theme-symbol">◐</span>
+            <span class="dropdown-value">Dark</span>
+            <span class="dropdown-arrow">⌄</span>
+          </button>
+
+          <div class="dropdown-menu">
+
+            <button
+              class="dropdown-option selected"
+              type="button"
+              data-value="dark"
+            >
+              <span>Dark</span>
+              <span class="option-check">✓</span>
+            </button>
+
+            <button
+              class="dropdown-option"
+              type="button"
+              data-value="light"
+            >
+              <span>Light</span>
+              <span class="option-check"></span>
+            </button>
+
+            <button
+              class="dropdown-option"
+              type="button"
+              data-value="system"
+            >
+              <span>System</span>
+              <span class="option-check"></span>
+            </button>
+
           </div>
-        </form>
-        <div class="disclaimer">AIVORA AI can make mistakes. Check important information.</div>
-      </footer>
-    </main>
-  </div>
-  <div class="toast" id="toast" role="status"></div>
-  <script src="/app.js"></script>
+
+        </div>
+
+
+        <select id="themeSelect" class="visually-hidden" aria-hidden="true" tabindex="-1">
+          <option value="dark" selected>Dark</option>
+          <option value="light">Light</option>
+          <option value="system">System</option>
+        </select>
+
+
+        <span class="top-caption">PERSONAL AI</span>
+
+        <button
+          class="icon-button"
+          id="exportChat"
+          type="button"
+          title="Export conversation"
+          aria-label="Export conversation"
+        >
+          ↓
+        </button>
+
+        <button
+          class="icon-button"
+          id="clearChat"
+          type="button"
+          title="Clear conversation"
+          aria-label="Clear conversation"
+        >
+          ⟲
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <!-- CONVERSATION AREA -->
+    <section class="conversation" id="conversation">
+
+      <!-- WELCOME SCREEN -->
+      <div class="welcome" id="welcome">
+
+        <div class="orb">
+          <span>✦</span>
+        </div>
+
+        <div class="eyebrow">
+          YOUR AI, REIMAGINED
+        </div>
+
+        <h1>
+          Where ideas<br>
+          <em>become reality.</em>
+        </h1>
+
+        <p>
+          Think freely. Ask anything. Create something amazing.
+          Your intelligent assistant is ready to help.
+        </p>
+
+
+        <!-- SUGGESTION CARDS -->
+        <div class="suggestions">
+
+          <button
+            class="suggestion"
+            type="button"
+            data-prompt="Explain an interesting technology concept in simple words."
+          >
+            <span class="suggestion-icon purple">✦</span>
+            <span class="suggestion-content">
+              <strong>Learn something new</strong>
+              <small>Explore technology and science</small>
+            </span>
+            <span class="suggestion-arrow">↗</span>
+          </button>
+
+
+          <button
+            class="suggestion"
+            type="button"
+            data-prompt="Help me generate creative ideas for a new project."
+          >
+            <span class="suggestion-icon blue">◇</span>
+            <span class="suggestion-content">
+              <strong>Explore creative ideas</strong>
+              <small>Turn your ideas into reality</small>
+            </span>
+            <span class="suggestion-arrow">↗</span>
+          </button>
+
+
+          <button
+            class="suggestion"
+            type="button"
+            data-prompt="Teach me a useful programming concept with an example."
+          >
+            <span class="suggestion-icon gold">⌘</span>
+            <span class="suggestion-content">
+              <strong>Write better code</strong>
+              <small>Learn programming step by step</small>
+            </span>
+            <span class="suggestion-arrow">↗</span>
+          </button>
+
+
+          <button
+            class="suggestion"
+            type="button"
+            data-prompt="Help me create a practical productivity plan."
+          >
+            <span class="suggestion-icon pink">◎</span>
+            <span class="suggestion-content">
+              <strong>Boost productivity</strong>
+              <small>Organize your goals and tasks</small>
+            </span>
+            <span class="suggestion-arrow">↗</span>
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- CHAT MESSAGES -->
+      <div class="messages" id="messages"></div>
+
+    </section>
+
+
+    <!-- MESSAGE COMPOSER -->
+    <footer class="composer-area">
+
+      <form class="composer" id="chatForm">
+
+        <textarea
+          id="promptInput"
+          placeholder="Message HARVION AI..."
+          rows="1"
+          autocomplete="off"
+        ></textarea>
+
+
+        <div class="composer-tools">
+
+          <div class="composer-hint">
+            <span>↵</span>
+            Enter to send · Shift + Enter for new line
+          </div>
+
+
+          <button
+            class="voice-button"
+            id="voiceButton"
+            type="button"
+            title="Voice input"
+            aria-label="Voice input"
+          >
+            🎙️
+          </button>
+
+
+          <button
+            class="stop-button"
+            id="stopButton"
+            type="button"
+            hidden
+          >
+            ■ Stop
+          </button>
+
+
+          <button
+            class="send-button"
+            id="sendButton"
+            type="submit"
+            aria-label="Send message"
+          >
+            ↑
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <div class="disclaimer">
+        HARVION AI can make mistakes. Verify important information.
+      </div>
+
+    </footer>
+
+  </main>
+
+</div>
+
+
+<!-- TOAST NOTIFICATION -->
+<div class="toast" id="toast"></div>
+
+
+<!-- LIBRARIES -->
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+
+
+<!-- HARVION AI APP -->
+<script src="/app.js"></script>
+
 </body>
 </html>
+
+
