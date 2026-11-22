@@ -9,19 +9,34 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
 
+// ========================================
+// FIREBASE CONFIGURATION
+// ========================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyDgVqvC8REm5E96kfL2hPbrmdqzEfZrbKc",
   authDomain: "harvoin-ai-web.firebaseapp.com",
   projectId: "harvoin-ai-web",
   storageBucket: "harvoin-ai-web.firebasestorage.app",
   messagingSenderId: "840815457367",
-  appId: "1:840815457367:web:78c44aefcddc47b5ba1f12",
-  measurementId: "G-RMEHMEE5MC"
+  appId: "1:840815457367:web:78c44aefcddc47b5ba1f12"
 };
+
+// ========================================
+// INITIALIZE FIREBASE
+// ========================================
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
 const provider = new GoogleAuthProvider();
+provider.setCustomParameters({
+  prompt: "select_account"
+});
+
+// ========================================
+// HTML ELEMENTS
+// ========================================
 
 const signInButton = document.getElementById("googleSignInButton");
 const signOutButton = document.getElementById("signOutButton");
@@ -34,39 +49,88 @@ const userEmail = document.getElementById("userEmail");
 const userAvatar = document.getElementById("userAvatar");
 const authStatus = document.getElementById("authStatus");
 
+const authMessage = document.getElementById("authMessage");
+
+// ========================================
+// AUTH MESSAGE
+// ========================================
+
+function showAuthMessage(message, isError = false) {
+  if (!authMessage) return;
+
+  authMessage.textContent = message;
+  authMessage.style.color = isError ? "#ff6b6b" : "";
+}
+
+function getFriendlyError(error) {
+  const messages = {
+    "auth/popup-closed-by-user": "Google sign-in was cancelled.",
+    "auth/unauthorized-domain": "This domain is not authorized in Firebase.",
+    "auth/popup-blocked": "Your browser blocked the sign-in popup.",
+    "auth/network-request-failed": "Please check your internet connection.",
+    "auth/api-key-not-valid": "Firebase API key is invalid. Check your Firebase configuration."
+  };
+
+  return messages[error.code] || error.message || "Google sign-in failed.";
+}
+
+// ========================================
 // GOOGLE SIGN IN
+// ========================================
 
-signInButton?.addEventListener("click", async () => {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (error) {
-    console.error("Google sign-in error:", error);
-    alert(error.message || "Google sign-in failed.");
-  }
-});
+if (signInButton) {
+  signInButton.addEventListener("click", async () => {
+    signInButton.disabled = true;
 
+    try {
+      showAuthMessage("Connecting to Google...");
+
+      await signInWithPopup(auth, provider);
+
+      showAuthMessage("");
+
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      showAuthMessage(getFriendlyError(error), true);
+
+    } finally {
+      signInButton.disabled = false;
+    }
+  });
+} else {
+  console.error("Google sign-in button not found.");
+}
+
+// ========================================
 // SIGN OUT
+// ========================================
 
-signOutButton?.addEventListener("click", async () => {
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.error("Sign-out error:", error);
-    alert(error.message || "Sign-out failed.");
-  }
-});
+if (signOutButton) {
+  signOutButton.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Sign-out error:", error);
+      alert(getFriendlyError(error));
+    }
+  });
+}
 
-// CHECK LOGIN STATUS
+// ========================================
+// AUTHENTICATION STATE
+// ========================================
 
 onAuthStateChanged(auth, (user) => {
+  if (!authScreen || !appShell) {
+    console.error("Authentication screen or app shell not found.");
+    return;
+  }
 
   if (user) {
-
-    // Show chat interface
     authScreen.hidden = true;
     appShell.hidden = false;
     appShell.classList.add("authenticated");
-        // PERSONALIZED WELCOME MESSAGE
+
     const personalWelcome = document.getElementById("personalWelcome");
     const personalWelcomeText = document.getElementById("personalWelcomeText");
 
@@ -83,7 +147,6 @@ onAuthStateChanged(auth, (user) => {
         "Your intelligent assistant is ready. What would you like to explore today?";
     }
 
-    // Update profile
     if (userName) {
       userName.textContent = user.displayName || "Google user";
     }
@@ -93,9 +156,7 @@ onAuthStateChanged(auth, (user) => {
     }
 
     if (userAvatar) {
-      userAvatar.textContent = user.displayName
-        ? user.displayName.charAt(0).toUpperCase()
-        : "G";
+      userAvatar.textContent = firstName.charAt(0).toUpperCase();
     }
 
     authStatus?.classList.add("signed-in");
@@ -105,35 +166,13 @@ onAuthStateChanged(auth, (user) => {
     }
 
   } else {
-        // RESTORE DEFAULT WELCOME MESSAGE
-    const personalWelcome = document.getElementById("personalWelcome");
-    const personalWelcomeText = document.getElementById("personalWelcomeText");
-
-    if (personalWelcome) {
-      personalWelcome.innerHTML = 'Where ideas<br><em>become reality.</em>';
-    }
-
-    if (personalWelcomeText) {
-      personalWelcomeText.textContent =
-        "Think freely. Ask anything. Create something amazing. Your intelligent assistant is ready to help.";
-    }
-
-    // Show login screen
     authScreen.hidden = false;
     appShell.hidden = true;
     appShell.classList.remove("authenticated");
 
-    if (userName) {
-      userName.textContent = "HARVION AI";
-    }
-
-    if (userEmail) {
-      userEmail.textContent = "Not signed in";
-    }
-
-    if (userAvatar) {
-      userAvatar.textContent = "A";
-    }
+    if (userName) userName.textContent = "HARVION AI";
+    if (userEmail) userEmail.textContent = "Not signed in";
+    if (userAvatar) userAvatar.textContent = "A";
 
     authStatus?.classList.remove("signed-in");
 
@@ -142,3 +181,4 @@ onAuthStateChanged(auth, (user) => {
     }
   }
 });
+

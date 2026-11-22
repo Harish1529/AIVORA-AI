@@ -495,9 +495,23 @@ button:disabled {
   border-color: var(--purple);
 }
 
+
 .mobile-menu {
   display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  font-size: 24px;
+  cursor: pointer;
 }
+
+@media (max-width: 768px) {
+  .mobile-menu {
+    display: inline-flex !important;
+  }
+}
+
 
 /* =========================================
    10. CUSTOM DROPDOWNS
