@@ -2421,3 +2421,48 @@ button:disabled {
 .app-shell[hidden] {
   display: none !important;
 }
+
+
+/* ========================================
+   HARVION AI - EXTERNAL CURSOR GLOW
+======================================== */
+
+#promptInput {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  transition: none;
+}
+
+#promptInput.cursor-glow-active {
+  box-shadow: none;
+  border-color: inherit;
+}
+
+#promptInput.cursor-glow-active::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: -1;
+  box-shadow:
+    0 0 12px 3px rgba(139, 92, 246, 0.55),
+    0 0 25px 5px rgba(59, 130, 246, 0.3);
+}
+
+
+/* HARVION AI - HOVER BORDER GLOW */
+
+.composer {
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.composer:hover {
+  border-color: rgba(139, 92, 246, 0.9);
+  box-shadow:
+    0 0 8px rgba(139, 92, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.35),
+    0 0 35px rgba(139, 92, 246, 0.2);
+}

@@ -1954,9 +1954,35 @@ $("#clearChat")?.addEventListener("click", () => {
   showToast("Current conversation deleted.");
 });
 
-$("#menuToggle")?.addEventListener("click", () => {
-  $("#sidebar")?.classList.toggle("open");
-});
+// ========================================
+// SIDEBAR TOGGLE
+// ========================================
+
+const menuToggle = $("#menuToggle");
+const sidebar = $("#sidebar");
+
+if (menuToggle && sidebar) {
+
+  // Open sidebar when hamburger is clicked
+  menuToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    sidebar.classList.toggle("open");
+  });
+
+  // Close sidebar when clicking outside
+  document.addEventListener("click", (event) => {
+
+    if (
+      sidebar.classList.contains("open") &&
+      !sidebar.contains(event.target) &&
+      !menuToggle.contains(event.target)
+    ) {
+      sidebar.classList.remove("open");
+    }
+
+  });
+
+}
 
 // ========================================
 // SUGGESTION BUTTONS
@@ -2115,3 +2141,6 @@ renderHistory();
 resizeInput();
 
 console.log("HARVION AI initialized successfully.");
+
+
+

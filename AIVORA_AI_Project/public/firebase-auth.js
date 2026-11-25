@@ -28,6 +28,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+// Get secure login token for backend requests
+window.getFirebaseIdToken = async function () {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("Please sign in with Google first.");
+  }
+
+  return await user.getIdToken();
+};
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({

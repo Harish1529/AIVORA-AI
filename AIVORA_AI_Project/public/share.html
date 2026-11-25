@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090b13">
+
+  <title>Shared Conversation — HARVION AI</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 30px 16px;
+      background: #090b13;
+      color: #f1f3f9;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: auto;
+    }
+
+    header {
+      padding-bottom: 24px;
+      border-bottom: 1px solid #252a3a;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      color: #8b83ff;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    h1 {
+      font-size: 25px;
+      overflow-wrap: anywhere;
+    }
+
+    .subtitle {
+      color: #9299ad;
+      font-size: 14px;
+    }
+
+    .message {
+      padding: 18px;
+      margin: 18px 0;
+      border: 1px solid #252a3a;
+      border-radius: 14px;
+      background: #111522;
+      line-height: 1.7;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .role {
+      color: #a69fff;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    #status {
+      color: #aeb4c7;
+      text-align: center;
+      padding: 40px 10px;
+    }
+
+    .error {
+      color: #ff8585 !important;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+
+    <header>
+      <div class="brand">HARVION AI</div>
+      <h1 id="chatTitle">Shared Conversation</h1>
+      <div class="subtitle">Read-only shared conversation</div>
+    </header>
+
+    <div id="status">Loading conversation...</div>
+
+    <section id="messages"></section>
+
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const titleEl = document.getElementById("chatTitle");
+    const messagesEl = document.getElementById("messages");
+
+    async function loadSharedConversation() {
+      try {
+        const token = window.location.pathname.split("/").pop();
+
+        if (!/^[a-f0-9]{48}$/.test(token)) {
+          throw new Error("Invalid share link.");
+        }
+
+        const response = await fetch(
+          `/api/share/${encodeURIComponent(token)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Unable to load conversation.");
+        }
+
+        titleEl.textContent = data.title || "Shared Conversation";
+
+        if (!Array.isArray(data.messages)) {
+          throw new Error("Invalid conversation data.");
+        }
+
+        messagesEl.replaceChildren();
+
+        data.messages.forEach((message) => {
+          const card = document.createElement("article");
+          card.className = "message";
+
+          const role = document.createElement("div");
+          role.className = "role";
+          role.textContent =
+            message.role === "assistant" ? "HARVION AI" : "USER";
+
+          const content = document.createElement("div");
+          content.textContent = message.content;
+
+          card.append(role, content);
+          messagesEl.appendChild(card);
+        });
+
+        statusEl.textContent = "";
+
+      } catch (error) {
+        statusEl.textContent = error.message;
+        statusEl.classList.add("error");
+      }
+    }
+
+    loadSharedConversation();
+  </script>
+</body>
+</html>

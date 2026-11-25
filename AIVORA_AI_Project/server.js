@@ -1,17 +1,69 @@
 
+
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import fs from "fs";
+import { randomBytes } from "node:crypto";
 
 dotenv.config();
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Initialize Firebase Admin SDK
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+
+if (!serviceAccountPath) {
+  throw new Error("Firebase service account path is missing.");
+}
+
+const serviceAccount = JSON.parse(
+  fs.readFileSync(serviceAccountPath, "utf8")
+);
+
+initializeApp({
+  credential: cert(serviceAccount)
+});
+
+const db = getFirestore();
+
+const firebaseAuth = getAuth();
+
+async function verifyFirebaseUser(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || "";
+
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        error: "Please sign in first."
+      });
+    }
+
+    const idToken = authHeader.split(" ")[1];
+    const decodedToken = await firebaseAuth.verifyIdToken(idToken);
+
+    req.user = decodedToken;
+
+    next();
+  } catch (error) {
+    console.error("Authentication error:", error.message);
+
+    return res.status(401).json({
+      error: "Authentication failed. Please sign in again."
+    });
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(express.json({ limit: "30mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
 
 // ========================================
 // AVAILABLE GEMINI MODELS
@@ -717,6 +769,175 @@ console.log("HARVION: Chat request received");
   }
 });
 
+// ========================================
+// CREATE PUBLIC CHAT SHARE LINK
+// ========================================
+
+app.post("/api/share", verifyFirebaseUser, async (req, res) => {
+  try {
+    const { title, messages } = req.body;
+
+    if (
+      !Array.isArray(messages) ||
+      messages.length === 0 ||
+      messages.length > 30
+    ) {
+      return res.status(400).json({
+        error: "Invalid conversation."
+      });
+    }
+
+    const safeMessages = [];
+
+    for (const message of messages) {
+      if (
+        !message ||
+        !["user", "assistant"].includes(message.role) ||
+        typeof message.content !== "string" ||
+        !message.content.trim() ||
+        message.content.length > 12000
+      ) {
+        return res.status(400).json({
+          error: "Invalid message content."
+        });
+      }
+
+      safeMessages.push({
+        role: message.role,
+        content: message.content
+      });
+    }
+
+    const shareToken = randomBytes(24).toString("hex");
+
+    await db.collection("shares").doc(shareToken).set({
+      ownerUid: req.user.uid,
+      title: typeof title === "string"
+        ? title.slice(0, 100)
+        : "Shared conversation",
+      messages: safeMessages,
+      active: true,
+      createdAt: new Date().toISOString()
+    });
+
+    return res.status(201).json({
+      success: true,
+      shareId: shareToken,
+      shareUrl: `${req.protocol}://${req.get("host")}/share/${shareToken}`
+    });
+
+  } catch (error) {
+    console.error("Share creation error:", error);
+
+    return res.status(500).json({
+      error: "Unable to create share link."
+    });
+  }
+});
+// ========================================
+// OPEN PUBLIC SHARED CONVERSATION
+// ========================================
+
+app.get("/api/share/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+
+    if (!/^[a-f0-9]{48}$/.test(token)) {
+      return res.status(400).json({
+        error: "Invalid share link."
+      });
+    }
+
+    const shareDoc = await db
+      .collection("shares")
+      .doc(token)
+      .get();
+
+    if (!shareDoc.exists) {
+      return res.status(404).json({
+        error: "Shared conversation not found."
+      });
+    }
+
+    const share = shareDoc.data();
+
+    if (!share.active) {
+      return res.status(410).json({
+        error: "This share link has been revoked."
+      });
+    }
+
+    return res.json({
+      title: share.title,
+      messages: share.messages
+    });
+
+  } catch (error) {
+    console.error("Share retrieval error:", error);
+
+    return res.status(500).json({
+      error: "Unable to open shared conversation."
+    });
+  }
+});
+// ========================================
+// REVOKE PUBLIC SHARE LINK
+// ========================================
+
+app.delete("/api/share/:token", verifyFirebaseUser, async (req, res) => {
+  try {
+    const token = req.params.token;
+
+    if (!/^[a-f0-9]{48}$/.test(token)) {
+      return res.status(400).json({
+        error: "Invalid share link."
+      });
+    }
+
+    const shareRef = db.collection("shares").doc(token);
+    const shareDoc = await shareRef.get();
+
+    if (!shareDoc.exists) {
+      return res.status(404).json({
+        error: "Shared conversation not found."
+      });
+    }
+
+    const share = shareDoc.data();
+
+    if (share.ownerUid !== req.user.uid) {
+      return res.status(403).json({
+        error: "You cannot revoke someone else's share link."
+      });
+    }
+
+    await shareRef.update({
+      active: false,
+      revokedAt: new Date().toISOString()
+    });
+
+    return res.json({
+      success: true,
+      message: "Share link revoked successfully."
+    });
+
+  } catch (error) {
+    console.error("Share revocation error:", error);
+
+    return res.status(500).json({
+      error: "Unable to revoke share link."
+    });
+  }
+});
+// ========================================
+// SERVE PUBLIC SHARING PAGE
+// ========================================
+
+app.get("/share/:token", (_req, res) => {
+  res.sendFile(
+    path.join(__dirname, "public", "share.html")
+  );
+});
 // ========================================
 // SERVE FRONTEND
 // ========================================
